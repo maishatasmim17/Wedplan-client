@@ -1,0 +1,255 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
+import { API_BASE_URL } from "@/lib/utils";
+import { Heart, Lock, Mail, User as UserIcon, Building2, UploadCloud, ArrowRight } from "lucide-react";
+
+export default function SignUpClient() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+  const { showToast } = useToast();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"customer" | "vendor">(
+    searchParams.get("role") === "vendor" ? "vendor" : "customer"
+  );
+  const [businessName, setBusinessName] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadToImgBB = async (file: File): Promise<string> => {
+    try {
+      return imagePreview || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80";
+    } catch {
+      return "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80";
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name || !email || !password) {
+      showToast("Please provide all required fields", "error");
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z]).{6,}$/;
+    if (!passwordRegex.test(password)) {
+      showToast("Password must be at least 6 characters with uppercase and lowercase letters", "error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let finalImageUrl = "";
+      if (imageFile) {
+        finalImageUrl = await uploadToImgBB(imageFile);
+      }
+
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role,
+          businessName: role === "vendor" ? businessName : undefined,
+          image: finalImageUrl
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.message || "Registration failed", "error");
+        return;
+      }
+
+      showToast("Registration successful! Welcome to WedPlan", "success");
+      login(data.token, data.user);
+
+      if (data.user.role === "vendor") {
+        router.push("/dashboard/vendor");
+      } else {
+        router.push("/dashboard/customer");
+      }
+    } catch (err) {
+      showToast("Network error occurred during registration", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-[90vh] flex items-center justify-center px-4 py-16">
+      <div className="w-full max-w-lg bg-stone-900/90 border border-stone-800 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-8 backdrop-blur-md">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-950/40">
+            <Heart className="w-6 h-6 text-white fill-white" />
+          </div>
+          <h1 className="text-2xl font-serif font-bold text-stone-100">Create an Account</h1>
+          <p className="text-xs text-stone-400">
+            Join WedPlan as a wedding couple or register your creative wedding business.
+          </p>
+        </div>
+
+        {/* Role Toggle Selector */}
+        <div className="grid grid-cols-2 gap-3 p-1.5 bg-stone-950 rounded-2xl border border-stone-800">
+          <button
+            type="button"
+            onClick={() => setRole("customer")}
+            className={`py-2.5 rounded-xl text-xs font-semibold transition ${
+              role === "customer"
+                ? "bg-rose-600 text-white shadow-md shadow-rose-950/40"
+                : "text-stone-400 hover:text-stone-200"
+            }`}
+          >
+            I am a Customer / Couple
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole("vendor")}
+            className={`py-2.5 rounded-xl text-xs font-semibold transition ${
+              role === "vendor"
+                ? "bg-rose-600 text-white shadow-md shadow-rose-950/40"
+                : "text-stone-400 hover:text-stone-200"
+            }`}
+          >
+            I am a Wedding Vendor
+          </button>
+        </div>
+
+        {/* Registration Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
+              Full Name *
+            </label>
+            <div className="relative">
+              <UserIcon className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Eleanor Vance"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-sm text-stone-100 focus:outline-none focus:border-rose-500 transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
+              Email Address *
+            </label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="eleanor@weddings.com"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-sm text-stone-100 focus:outline-none focus:border-rose-500 transition"
+              />
+            </div>
+          </div>
+
+          {role === "vendor" && (
+            <div>
+              <label className="block text-xs font-semibold text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
+                Business / Studio Name
+              </label>
+              <div className="relative">
+                <Building2 className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder="Vance Haute Floral & Decor"
+                  className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-sm text-stone-100 focus:outline-none focus:border-rose-500 transition"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
+              Password * (Min 6 chars, uppercase & lowercase)
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-sm text-stone-100 focus:outline-none focus:border-rose-500 transition"
+              />
+            </div>
+          </div>
+
+          {/* Profile Image Upload */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
+              Profile Photo (Optional)
+            </label>
+            <div className="flex items-center gap-4">
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-rose-500"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-stone-800 border border-stone-700 flex items-center justify-center text-stone-400">
+                  <UploadCloud className="w-5 h-5" />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="text-xs text-stone-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-rose-950/80 file:text-rose-300 hover:file:bg-rose-900 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 mt-4 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-rose-950/50 flex items-center justify-center gap-2 transition disabled:opacity-50"
+          >
+            {loading ? "Registering Account..." : "Create Free Account"}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-stone-400">
+          Already registered?{" "}
+          <Link href="/signin" className="text-rose-400 font-semibold hover:underline">
+            Sign In Here
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
