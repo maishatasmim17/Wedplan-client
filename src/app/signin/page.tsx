@@ -98,68 +98,68 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-md bg-stone-900/90 border border-stone-800 rounded-3xl p-8 shadow-2xl space-y-8 backdrop-blur-md">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-16 transition-colors">
+      <div className="w-full max-w-md bg-white dark:bg-stone-900/90 border border-stone-200 dark:border-stone-800 rounded-3xl p-8 shadow-2xl space-y-8 backdrop-blur-md">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-950/40">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-950/20">
             <Heart className="w-6 h-6 text-white fill-white" />
           </div>
-          <h1 className="text-2xl font-serif font-bold text-stone-100">Welcome to WedPlan</h1>
-          <p className="text-xs text-stone-400">
+          <h1 className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-100">Welcome Back</h1>
+          <p className="text-xs text-stone-600 dark:text-stone-400">
             Sign in to manage your wedding bookings, services, or platform controls.
           </p>
         </div>
 
         {/* Demo Credentials Helper Pill */}
-        <div className="p-3 bg-stone-950/60 rounded-xl border border-stone-800 text-xs text-stone-400 space-y-1">
-          <p className="font-semibold text-rose-300">Quick Test Credentials:</p>
+        <div className="p-3 bg-stone-50 dark:bg-stone-950/60 rounded-xl border border-stone-200 dark:border-stone-800 text-xs text-stone-600 dark:text-stone-400 space-y-1">
+          <p className="font-semibold text-rose-600 dark:text-rose-300">Quick Test Credentials:</p>
           <div className="flex justify-between">
             <span>Admin: admin@wedplan.com</span>
-            <span className="font-mono text-stone-300">WedPlan@2026</span>
+            <span className="font-mono text-stone-800 dark:text-stone-300">WedPlan@2026</span>
           </div>
           <div className="flex justify-between">
             <span>Vendor: elena@royalphoto.com</span>
-            <span className="font-mono text-stone-300">WedPlan@2026</span>
+            <span className="font-mono text-stone-800 dark:text-stone-300">WedPlan@2026</span>
           </div>
           <div className="flex justify-between">
             <span>Customer: sarah.j@gmail.com</span>
-            <span className="font-mono text-stone-300">WedPlan@2026</span>
+            <span className="font-mono text-stone-800 dark:text-stone-300">WedPlan@2026</span>
           </div>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
+            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-stone-400 dark:text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-sm text-stone-100 focus:outline-none focus:border-rose-500 transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl text-sm text-stone-900 dark:text-stone-100 focus:outline-none focus:border-rose-500 transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
+            <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
               Password
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-stone-400 dark:text-stone-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 bg-stone-950 border border-stone-800 rounded-xl text-sm text-stone-100 focus:outline-none focus:border-rose-500 transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-xl text-sm text-stone-900 dark:text-stone-100 focus:outline-none focus:border-rose-500 transition"
               />
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function SignInPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-rose-950/50 flex items-center justify-center gap-2 transition disabled:opacity-50"
+            className="w-full py-3 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white rounded-xl font-semibold text-sm shadow-lg shadow-rose-950/20 flex items-center justify-center gap-2 transition disabled:opacity-50"
           >
             {loading ? "Signing In..." : "Sign In to WedPlan"}
             <ArrowRight className="w-4 h-4" />
@@ -177,25 +177,25 @@ export default function SignInPage() {
         {/* Real Google Sign In */}
         <div className="space-y-3">
           <div className="relative flex items-center justify-center">
-            <div className="border-t border-stone-800 w-full" />
-            <span className="bg-stone-900 px-3 text-xs text-stone-500 font-mono uppercase">Or Continue With</span>
-            <div className="border-t border-stone-800 w-full" />
+            <div className="border-t border-stone-200 dark:border-stone-800 w-full" />
+            <span className="bg-white dark:bg-stone-900 px-3 text-xs text-stone-500 font-mono uppercase">Or Continue With</span>
+            <div className="border-t border-stone-200 dark:border-stone-800 w-full" />
           </div>
 
           <div className="flex justify-center">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => showToast("Google Login failed", "error")}
-              theme="filled_black"
+              theme="outline"
               shape="pill"
               text="signin_with"
             />
           </div>
         </div>
 
-        <p className="text-center text-xs text-stone-400">
+        <p className="text-center text-xs text-stone-600 dark:text-stone-400">
           Don&apos;t have an account yet?{" "}
-          <Link href="/signup" className="text-rose-400 font-semibold hover:underline">
+          <Link href="/signup" className="text-rose-600 dark:text-rose-400 font-semibold hover:underline">
             Create an Account
           </Link>
         </p>
