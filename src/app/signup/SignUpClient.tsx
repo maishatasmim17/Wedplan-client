@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { API_BASE_URL } from "@/lib/utils";
@@ -96,6 +97,45 @@ export default function SignUpClient() {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (!credentialResponse.credential) {
+      showToast("Google sign up failed", "error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          credential: credentialResponse.credential,
+          role,
+          businessName: role === "vendor" ? businessName : undefined
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.message || "Google registration failed", "error");
+        return;
+      }
+
+      showToast(`Account registered as ${data.user.role}! Welcome ${data.user.name}`, "success");
+      login(data.token, data.user);
+
+      if (data.user.role === "vendor") {
+        router.push("/dashboard/vendor");
+      } else {
+        router.push("/dashboard/customer");
+      }
+    } catch (err) {
+      showToast("Network error during Google sign up", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-[90vh] flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-lg bg-stone-900/90 border border-stone-800 rounded-3xl p-8 sm:p-10 shadow-2xl space-y-8 backdrop-blur-md">
@@ -134,6 +174,28 @@ export default function SignUpClient() {
           >
             I am a Wedding Vendor
           </button>
+        </div>
+
+        {/* Google One-Click Sign Up */}
+        <div className="space-y-3">
+          <div className="flex flex-col items-center justify-center gap-2">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => showToast("Google registration failed", "error")}
+              theme="filled_black"
+              shape="pill"
+              text="signup_with"
+            />
+            <p className="text-[11px] text-stone-400">
+              Sign up as <span className="text-rose-400 font-semibold capitalize">{role}</span> with your Google Account
+            </p>
+          </div>
+
+          <div className="relative flex items-center justify-center pt-2">
+            <div className="border-t border-stone-800 w-full" />
+            <span className="bg-stone-900 px-3 text-xs text-stone-500 font-mono uppercase">Or Sign Up With Email</span>
+            <div className="border-t border-stone-800 w-full" />
+          </div>
         </div>
 
         {/* Registration Form */}

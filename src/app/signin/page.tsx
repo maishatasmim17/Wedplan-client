@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { API_BASE_URL } from "@/lib/utils";
-import { Heart, Lock, Mail, ArrowRight, ShieldCheck } from "lucide-react";
+import { Heart, Lock, Mail, ArrowRight } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -56,28 +57,41 @@ export default function SignInPage() {
     }
   };
 
-  const handleGoogleMockLogin = async () => {
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (!credentialResponse.credential) {
+      showToast("Google sign in failed", "error");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "Google Wedding Explorer",
-          email: "google.user@example.com",
-          image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+          credential: credentialResponse.credential,
           role: "customer"
         })
       });
 
       const data = await res.json();
-      if (data.success) {
-        showToast("Signed in with Google successfully", "success");
-        login(data.token, data.user);
+      if (!res.ok || !data.success) {
+        showToast(data.message || "Google authentication failed", "error");
+        return;
+      }
+
+      showToast(`Welcome ${data.user.name}!`, "success");
+      login(data.token, data.user);
+
+      if (data.user.role === "admin") {
+        router.push("/dashboard/admin");
+      } else if (data.user.role === "vendor") {
+        router.push("/dashboard/vendor");
+      } else {
         router.push("/dashboard/customer");
       }
     } catch (err) {
-      showToast("Google authentication failed", "error");
+      showToast("Network error during Google authentication", "error");
     } finally {
       setLoading(false);
     }
@@ -160,7 +174,7 @@ export default function SignInPage() {
           </button>
         </form>
 
-        {/* Alternative Google Sign In */}
+        {/* Real Google Sign In */}
         <div className="space-y-3">
           <div className="relative flex items-center justify-center">
             <div className="border-t border-stone-800 w-full" />
@@ -168,36 +182,19 @@ export default function SignInPage() {
             <div className="border-t border-stone-800 w-full" />
           </div>
 
-          <button
-            type="button"
-            onClick={handleGoogleMockLogin}
-            disabled={loading}
-            className="w-full py-2.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 rounded-xl text-xs font-semibold text-stone-200 flex items-center justify-center gap-2 transition"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12 5c1.54 0 2.94.54 4.04 1.44l3.03-3.03C17.24 1.71 14.8 1 12 1 7.42 1 3.51 3.61 1.7 7.43l3.66 2.84C6.24 7.22 8.87 5 12 5z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.7 2.87c2.16-1.99 3.72-4.92 3.72-8.69z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.36 14.73c-.24-.72-.36-1.49-.36-2.28 0-.79.12-1.56.36-2.28L1.7 7.33C.62 9.5 0 11.92 0 14.45s.62 4.95 1.7 7.12l3.66-2.84z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23.9c3.24 0 5.96-1.08 7.95-2.93l-3.7-2.87c-1.08.72-2.46 1.15-4.25 1.15-3.13 0-5.76-2.22-6.64-5.27L1.7 16.82C3.51 20.64 7.42 23.9 12 23.9z"
-              />
-            </svg>
-            Sign in with Google OAuth
-          </button>
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => showToast("Google Login failed", "error")}
+              theme="filled_black"
+              shape="pill"
+              text="signin_with"
+            />
+          </div>
         </div>
 
         <p className="text-center text-xs text-stone-400">
-          Don't have an account yet?{" "}
+          Don&apos;t have an account yet?{" "}
           <Link href="/signup" className="text-rose-400 font-semibold hover:underline">
             Create an Account
           </Link>
