@@ -1,54 +1,44 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { API_BASE_URL } from "@/lib/utils";
-import { Sparkles, Check, ArrowRight, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarClock,
+  Check,
+  Loader2,
+  ShieldCheck,
+  Sparkles
+} from "lucide-react";
 
 export default function VendorSubscriptionClient() {
-  const { user, token, refreshProfile } = useAuth();
+  const { user, token, loading: authLoading, refreshProfile } = useAuth();
   const { showToast } = useToast();
-  const searchParams = useSearchParams();
-  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
+  const [managing, setManaging] = useState(false);
+  const refreshed = useRef(false);
 
+  // Always read the latest subscription state from the server (handles expiry).
   useEffect(() => {
-    const sessionId = searchParams.get("session_id");
-    const status = searchParams.get("status");
+    if (refreshed.current || authLoading || !token) return;
+    refreshed.current = true;
+    refreshProfile();
+  }, [authLoading, token, refreshProfile]);
 
-    if (sessionId && status === "success" && token) {
-      confirmSubscription(sessionId);
-    } else if (status === "cancelled") {
-      showToast("Subscription upgrade cancelled. You remain on the Free plan.", "info");
-    }
-  }, [searchParams, token]);
-
-  const confirmSubscription = async (sessionId: string) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/payment/confirm-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ sessionId })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        showToast("Premium Subscription Activated! Enjoy unlimited services.", "success");
-        await refreshProfile();
-        router.replace("/dashboard/vendor/subscription");
-      }
-    } catch (err) {
-      console.error("Confirmation error:", err);
-    }
-  };
+  const isPremium =
+    user?.subscriptionPlan === "premium" &&
+    (!user.subscriptionExpiresAt ||
+      new Date(user.subscriptionExpiresAt).getTime() > Date.now());
 
   const handleUpgrade = async () => {
+    if (!token) {
+      showToast("Please sign in to upgrade your plan.", "error");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/payment/create-checkout-session`, {
@@ -65,17 +55,54 @@ export default function VendorSubscriptionClient() {
         return;
       }
 
-      if (data.url) {
-        window.location.href = data.url;
+      // Never navigate to an undefined/invalid URL.
+      if (typeof data.url === "string" && /^https?:\/\//.test(data.url)) {
+        window.location.assign(data.url);
+      } else {
+        showToast("Checkout URL was invalid. Please try again.", "error");
       }
-    } catch (err) {
+    } catch {
       showToast("Network error creating checkout session", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const isPremium = user?.subscriptionPlan === "premium";
+  const handleManageSubscription = async () => {
+    if (!token) return;
+    setManaging(true);
+    try {
+      if (user?.stripeSubscriptionId) {
+        const res = await fetch(`${API_BASE_URL}/payment/create-portal-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok && data.success && /^https?:\/\//.test(data.url)) {
+          window.location.assign(data.url);
+          return;
+        }
+        showToast(data.message || "Could not open Stripe subscription settings", "error");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/payment/cancel-subscription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.message || "Could not cancel subscription", "error");
+        return;
+      }
+      showToast("Premium subscription cancelled. You are back on the Free plan.", "info");
+      await refreshProfile();
+    } catch {
+      showToast("Network error managing your subscription", "error");
+    } finally {
+      setManaging(false);
+    }
+  };
 
   return (
     <div className="space-y-10 max-w-4xl">
@@ -103,6 +130,12 @@ export default function VendorSubscriptionClient() {
             <p className="text-xs text-stone-300 mt-1 leading-relaxed">
               Your account allows unlimited wedding services, priority placement in search results, and a verified vendor badge.
             </p>
+            {user?.subscriptionExpiresAt && (
+              <p className="mt-3 flex items-center gap-2 text-[11px] font-mono text-amber-300/90">
+                <CalendarClock className="w-3.5 h-3.5" />
+                Renews / expires: {new Date(user.subscriptionExpiresAt).toLocaleDateString()}
+              </p>
+            )}
           </div>
         </div>
       ) : null}
@@ -196,10 +229,16 @@ export default function VendorSubscriptionClient() {
           <div className="mt-8 pt-6 border-t border-stone-800">
             {isPremium ? (
               <button
-                disabled
-                className="w-full py-3 bg-stone-800 text-stone-400 rounded-2xl text-xs font-semibold cursor-not-allowed"
+                onClick={handleManageSubscription}
+                disabled={managing}
+                className="w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition disabled:opacity-50"
               >
-                Plan Already Active
+                {managing && <Loader2 className="w-4 h-4 animate-spin" />}
+                {managing
+                  ? "Updating..."
+                  : user?.stripeSubscriptionId
+                    ? "Manage / Cancel Subscription"
+                    : "Cancel Premium (Test Mode)"}
               </button>
             ) : (
               <button
@@ -207,8 +246,15 @@ export default function VendorSubscriptionClient() {
                 disabled={loading}
                 className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 rounded-2xl text-xs font-bold shadow-xl shadow-amber-950/40 flex items-center justify-center gap-2 transition hover:scale-105 disabled:opacity-50"
               >
-                {loading ? "Redirecting to Stripe..." : "Upgrade to Premium ($49/yr)"}
-                <ArrowRight className="w-4 h-4" />
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Opening secure checkout...
+                  </>
+                ) : (
+                  <>
+                    Upgrade to Premium ($49/yr) <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             )}
           </div>

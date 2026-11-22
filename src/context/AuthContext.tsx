@@ -12,6 +12,7 @@ export interface User {
   businessName?: string;
   subscriptionPlan?: "free" | "premium";
   subscriptionExpiresAt?: string;
+  stripeSubscriptionId?: string;
   isBlocked?: boolean;
 }
 
