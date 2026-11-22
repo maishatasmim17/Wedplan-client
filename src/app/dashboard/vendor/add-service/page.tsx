@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { API_BASE_URL } from "@/lib/utils";
-import { PlusCircle, UploadCloud, ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { uploadServiceImage } from "@/lib/imageUpload";
+import { PlusCircle, ArrowLeft, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 
 const CATEGORIES = [
@@ -28,37 +29,25 @@ export default function AddServicePage() {
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploadingImg, setUploadingImg] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // File upload to ImgBB (Free image hosting)
+  // Upload the picked file to our own API (stored in MongoDB, served by /api/upload).
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-
-    // Upload to ImgBB API
+    const localPreview = URL.createObjectURL(file);
+    setImagePreview(localPreview);
     setUploadingImg(true);
     try {
-      const formData = new FormData();
-      formData.append("image", file);
-      
-      // ImgBB public demo key / fallback
-      const imgbbRes = await fetch("https://api.imgbb.com/1/upload?key=8d48bb997184fb2cbbd425ad8017c60e", {
-        method: "POST",
-        body: formData,
-      });
-      const imgbbData = await imgbbRes.json();
-      if (imgbbData?.data?.url) {
-        setImageUrl(imgbbData.data.url);
-        showToast("Image uploaded to ImgBB successfully!", "success");
-      }
+      const url = await uploadServiceImage(file, token);
+      setImageUrl(url);
+      showToast("Image uploaded successfully!", "success");
     } catch (err) {
-      console.warn("ImgBB direct upload note:", err);
+      setImagePreview("");
+      showToast(err instanceof Error ? err.message : "Image upload failed", "error");
     } finally {
       setUploadingImg(false);
     }
@@ -74,7 +63,7 @@ export default function AddServicePage() {
 
     setLoading(true);
     try {
-      const finalImage = imageUrl.trim() || imagePreview || "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80";
+      const finalImage = imageUrl.trim() || "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80";
 
       const res = await fetch(`${API_BASE_URL}/services`, {
         method: "POST",
@@ -195,10 +184,10 @@ export default function AddServicePage() {
             </div>
           </div>
 
-          {/* Service Image Upload (ImgBB File Upload + URL Fallback) */}
+          {/* Service Image Upload */}
           <div>
             <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5 uppercase font-mono tracking-wider">
-              Service Image (Upload File using ImgBB or Provide Direct URL) *
+              Service Image (Upload a File or Paste an Image URL) *
             </label>
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               <div className="flex items-center gap-3">
@@ -220,7 +209,7 @@ export default function AddServicePage() {
                     onChange={handleFileChange}
                     className="text-xs text-stone-600 dark:text-stone-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-50 dark:file:bg-rose-950/80 file:text-rose-600 dark:file:text-rose-300 hover:file:bg-rose-100 cursor-pointer"
                   />
-                  {uploadingImg && <p className="text-[11px] text-amber-500 mt-1">Uploading to ImgBB...</p>}
+                  {uploadingImg && <p className="text-[11px] text-amber-500 mt-1">Uploading image...</p>}
                 </div>
               </div>
 
@@ -229,7 +218,7 @@ export default function AddServicePage() {
                   type="url"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="Or paste direct image URL (https://i.ibb.co/...)"
+                  placeholder="Or paste a direct image URL (https://...)"
                   className="w-full px-4 py-2.5 bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 rounded-xl text-sm text-stone-900 dark:text-stone-100 focus:outline-none focus:border-rose-500 transition"
                 />
               </div>

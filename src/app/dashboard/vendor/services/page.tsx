@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { API_BASE_URL } from "@/lib/utils";
-import { PlusCircle, Trash2, Edit3, Eye, AlertCircle, X, Check } from "lucide-react";
+import { uploadServiceImage } from "@/lib/imageUpload";
+import { PlusCircle, Trash2, Edit3, Eye, AlertCircle, X, Check, UploadCloud } from "lucide-react";
 
 const CATEGORIES = [
   "Photography & Videography",
@@ -30,6 +31,7 @@ export default function VendorServicesPage() {
   const [editLocation, setEditLocation] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
+  const [editUploading, setEditUploading] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
 
   useEffect(() => {
@@ -61,6 +63,22 @@ export default function VendorServicesPage() {
     setEditLocation(service.location);
     setEditDescription(service.description);
     setEditImageUrl(service.images?.[0] || "");
+  };
+
+  const handleEditImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setEditUploading(true);
+    try {
+      const url = await uploadServiceImage(file, token);
+      setEditImageUrl(url);
+      showToast("Image uploaded successfully!", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Image upload failed", "error");
+    } finally {
+      setEditUploading(false);
+    }
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent) => {
@@ -341,13 +359,38 @@ export default function VendorServicesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1">
-                  Image URL *
+                  Service Image (Upload a File or Paste a URL) *
                 </label>
+                <div className="flex items-center gap-3 mb-2">
+                  {editImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={editImageUrl}
+                      alt="Current service"
+                      className="w-14 h-14 rounded-xl object-cover ring-2 ring-rose-500 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 flex items-center justify-center text-stone-400 shrink-0">
+                      <UploadCloud className="w-5 h-5" />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEditImageChange}
+                    disabled={editUploading}
+                    className="text-xs text-stone-600 dark:text-stone-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-50 dark:file:bg-rose-950/80 file:text-rose-600 dark:file:text-rose-300 hover:file:bg-rose-100 cursor-pointer disabled:opacity-50"
+                  />
+                </div>
+                {editUploading && (
+                  <p className="text-[11px] text-amber-500 mb-2">Uploading image...</p>
+                )}
                 <input
                   type="url"
                   required
                   value={editImageUrl}
                   onChange={(e) => setEditImageUrl(e.target.value)}
+                  placeholder="Uploaded image URL (or paste your own)"
                   className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-950 border border-stone-300 dark:border-stone-800 rounded-xl text-sm text-stone-900 dark:text-stone-100 focus:outline-none focus:border-rose-500"
                 />
               </div>
@@ -375,10 +418,10 @@ export default function VendorServicesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={updateLoading}
-                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                  disabled={updateLoading || editUploading}
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
-                  {updateLoading ? "Saving..." : "Save Changes"}
+                  {editUploading ? "Uploading..." : updateLoading ? "Saving..." : "Save Changes"}
                   <Check className="w-4 h-4" />
                 </button>
               </div>
