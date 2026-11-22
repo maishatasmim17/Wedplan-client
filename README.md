@@ -60,16 +60,12 @@ WedPlan is a premier, role-based wedding planning platform designed to connect c
    ```
 
 ## How to Run the Project Locally
-1. Create a `.env.local` file in the root directory:
-   ```env
-   NEXT_PUBLIC_API_URL=http://localhost:5000/api
-   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id
-   ```
-2. Start the local Next.js development server:
+
+1. Start the local Next.js development server:
    ```bash
    npm run dev
    ```
-3. Open [http://localhost:3000](http://localhost:3000) in your web browser.
+2. Open [http://localhost:3000](http://localhost:3000) in your web browser.
 
 ## Evaluation Test Accounts
 Demo account credentials are available on request from the project owner. Please do not commit real credentials to this repository.
